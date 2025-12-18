@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Enquiry</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 40px;
+    }
+    .container {
+      max-width: 400px;
+      background: #fff;
+      padding: 20px;
+      margin: auto;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, textarea, button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Customer Enquiry Form</h2>
+
+    <input type="text" id="name" placeholder="Your Name" required>
+    <input type="email" id="email" placeholder="Your Email" required>
+    <textarea id="message" placeholder="Your Enquiry"></textarea>
+
+    <button onclick="submitEnquiry()">Submit</button>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // 🔥 REPLACE THIS WITH YOUR OWN FIREBASE CONFIG
+    const firebaseConfig = {apiKey: "AIzaSyD08Wsrwh3xoOJV2qrPStmn4VX4-X3o2ok",
+  authDomain: "dbc-enquiry-inbox.firebaseapp.com",
+  projectId: "dbc-enquiry-inbox",
+  storageBucket: "dbc-enquiry-inbox.firebasestorage.app",
+  messagingSenderId: "791675343192",
+  appId: "1:791675343192:web:ae4a94cd01246bf052952d"}
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function submitEnquiry() {
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const message = document.getElementById("message").value;
+
+      if (!name || !email) {
+        alert("Please fill all required fields");
+        return;
+      }
+
+      db.collection("enquiries").add({
+        name: name,
+        email: email,
+        message: message,
+        status: "New",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      })
+      .then(() => {
+        alert("Enquiry submitted successfully!");
+        document.getElementById("name").value = "";
+        document.getElementById("email").value = "";
+        document.getElementById("message").value = "";
+      })
+      .catch(error => {
+        alert("Error submitting enquiry");
+        console.error(error);
+      });
+    }
+  </script>
+
+</body>
+</html>
