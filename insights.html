@@ -18,26 +18,11 @@
     <p class="label">Live metrics from Firestore (updates automatically).</p>
 
     <div class="grid">
-      <div class="card">
-        <div class="stat" id="total">0</div>
-        <div class="label">Total enquiries</div>
-      </div>
-      <div class="card">
-        <div class="stat" id="new">0</div>
-        <div class="label">New</div>
-      </div>
-      <div class="card">
-        <div class="stat" id="progress">0</div>
-        <div class="label">In Progress</div>
-      </div>
-      <div class="card">
-        <div class="stat" id="resolved">0</div>
-        <div class="label">Resolved</div>
-      </div>
-      <div class="card">
-        <div class="stat" id="recent">0</div>
-        <div class="label">Last 24 hours</div>
-      </div>
+      <div class="card"><div class="stat" id="total">0</div><div class="label">Total enquiries</div></div>
+      <div class="card"><div class="stat" id="new">0</div><div class="label">New</div></div>
+      <div class="card"><div class="stat" id="progress">0</div><div class="label">In Progress</div></div>
+      <div class="card"><div class="stat" id="resolved">0</div><div class="label">Resolved</div></div>
+      <div class="card"><div class="stat" id="recent">0</div><div class="label">Last 24 hours</div></div>
     </div>
   </div>
 
@@ -45,8 +30,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // SAME Firebase config as other pages
-    const firebaseConfig =  {
+    // ✅ Paste the SAME config as public.html / staff.html
+    const firebaseConfig = {
   apiKey: "AIzaSyD08Wsrwh3xoOJV2qrPStmn4VX4-X3o2ok",
   authDomain: "dbc-enquiry-inbox.firebaseapp.com",
   projectId: "dbc-enquiry-inbox",
@@ -58,30 +43,39 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    db.collection("enquiries").onSnapshot((snap)=>{
-      let total = 0, n = 0, p = 0, r = 0, recent = 0;
-      const now = Date.now();
+    db.collection("enquiries").onSnapshot(
+      (snap) => {
+        console.log("Docs found:", snap.size);
 
-      snap.forEach(doc=>{
-        const d = doc.data();
-        total++;
+        let total = 0, n = 0, p = 0, r = 0, recent = 0;
+        const now = Date.now();
 
-        if(d.status === "New") n++;
-        if(d.status === "In Progress") p++;
-        if(d.status === "Resolved") r++;
+        snap.forEach((doc) => {
+          const d = doc.data();
+          total++;
 
-        if(d.createdAt && d.createdAt.toMillis){
-          const diff = now - d.createdAt.toMillis();
-          if(diff <= 24*60*60*1000) recent++;
-        }
-      });
+          const st = d.status || "New";
+          if (st === "New") n++;
+          if (st === "In Progress") p++;
+          if (st === "Resolved") r++;
 
-      document.getElementById("total").textContent = total;
-      document.getElementById("new").textContent = n;
-      document.getElementById("progress").textContent = p;
-      document.getElementById("resolved").textContent = r;
-      document.getElementById("recent").textContent = recent;
-    });
+          if (d.createdAt && d.createdAt.toMillis) {
+            const diff = now - d.createdAt.toMillis();
+            if (diff <= 24 * 60 * 60 * 1000) recent++;
+          }
+        });
+
+        document.getElementById("total").textContent = total;
+        document.getElementById("new").textContent = n;
+        document.getElementById("progress").textContent = p;
+        document.getElementById("resolved").textContent = r;
+        document.getElementById("recent").textContent = recent;
+      },
+      (err) => {
+        console.error("Firestore read error:", err);
+        alert("Insights cannot read Firestore: " + err.message);
+      }
+    );
   </script>
 </body>
 </html>
