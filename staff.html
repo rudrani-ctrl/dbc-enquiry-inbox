@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Staff Dashboard</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f4f6f8;padding:24px}
+    .wrap{max-width:900px;margin:0 auto}
+    .card{background:#fff;padding:16px;border-radius:10px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    input,textarea,select,button{width:100%;padding:10px;margin-top:8px}
+    button{border:none;background:#111827;color:#fff;border-radius:8px;cursor:pointer}
+    .hidden{display:none}
+    .muted{color:#6b7280;font-size:13px}
+    .row{display:flex;gap:12px}
+    .row>div{flex:1}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;background:#eef2ff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- REQUIRED: Credentials visible for marker -->
+    <div class="card" style="background:#fff7ed;border:1px solid #fed7aa">
+      <strong>Login credentials (for marker):</strong><br>
+      Username: <b>staff</b> &nbsp; Password: <b>staff123</b>
+      <div class="muted">Demo credentials for assessment access.</div>
+    </div>
+
+    <div id="loginCard" class="card">
+      <h2>Staff Login</h2>
+      <input id="username" placeholder="Username" />
+      <input id="password" type="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <div id="loginMsg" class="muted"></div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <div class="card">
+        <h2>Enquiry Inbox (Real-time)</h2>
+        <div class="muted">New enquiries will appear here without refreshing.</div>
+      </div>
+      <div id="list"></div>
+    </div>
+
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // REPLACE with your Firebase config (same as public.html)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const DEMO_USER = "staff";
+    const DEMO_PASS = "staff123";
+    let unsubscribe = null;
+
+    function login(){
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value.trim();
+      const msg = document.getElementById("loginMsg");
+
+      if(u === DEMO_USER && p === DEMO_PASS){
+        msg.textContent = "";
+        document.getElementById("loginCard").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        startRealtime();
+      } else {
+        msg.textContent = "Invalid login. Use the credentials shown above.";
+      }
+    }
+
+    function startRealtime(){
+      unsubscribe = db.collection("enquiries")
+        .orderBy("createdAt","desc")
+        .onSnapshot((snap)=>{
+          const list = document.getElementById("list");
+          if(snap.empty){
+            list.innerHTML = `<div class="card">No enquiries yet. Submit one from public.html.</div>`;
+            return;
+          }
+          let html = "";
+          snap.forEach((doc)=>{
+            const d = doc.data();
+            const id = doc.id;
+            const status = d.status || "New";
+            const notes = d.staffNotes || "";
+            html += `
+              <div class="card">
+                <div class="row">
+                  <div>
+                    <div class="pill">Status: <b>${esc(status)}</b></div>
+                    <h3 style="margin:10px 0 6px;">${esc(d.name||"")} <span class="muted">(${esc(d.email||"")})</span></h3>
+                    <div>${esc(d.message||"")}</div>
+                    <div class="muted" style="margin-top:8px;">Doc ID: ${id}</div>
+                  </div>
+                  <div style="max-width:320px;">
+                    <label class="muted">Update status</label>
+                    <select id="status-${id}">
+                      ${opt("New",status)}${opt("In Progress",status)}${opt("Resolved",status)}
+                    </select>
+                    <label class="muted">Staff notes</label>
+                    <textarea id="notes-${id}" rows="4">${esc(notes)}</textarea>
+                    <button onclick="saveUpdate('${id}')">Save update</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          list.innerHTML = html;
+        }, (err)=>{
+          console.error(err);
+          document.getElementById("list").innerHTML =
+            `<div class="card">Error loading enquiries. Check Firestore rules and console.</div>`;
+        });
+    }
+
+    function saveUpdate(id){
+      const status = document.getElementById(`status-${id}`).value;
+      const staffNotes = document.getElementById(`notes-${id}`).value;
+      db.collection("enquiries").doc(id).update({
+        status,
+        staffNotes,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(()=>alert("Saved!")).catch((e)=>{console.error(e);alert("Save failed.");});
+    }
+
+    function opt(v,c){ return `<option value="${v}" ${v===c?"selected":""}>${v}</option>`; }
+    function esc(s){ return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
+  </script>
+</body>
+</html>
